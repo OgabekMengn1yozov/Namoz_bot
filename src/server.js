@@ -1,33 +1,74 @@
 const TelegramBot = require("node-telegram-bot-api")
 const { TOKEN } = require("../config")
 const MessageContr = require("./controllers/MessageContr")
-const MessageSend = require("./controllers/MessageContr")
-const mongo = require("./models/mongo")
-const users = require("./models/UserModel")
-const { v4 } = require("uuid")
+const postgres = require("./modules/postgres")
+
 const bot = new TelegramBot(TOKEN, {
     polling: true,
 })
 
-mongo()
-
 bot.on("message", async (message) => {
-    const userId = message.from.id
+    try {
+        const psql = await postgres()
 
-    let user = await users.findOne({
-        user_id: userId,
-    })
+        const user_id = message.from.id
 
-    if(!user) {
-        user = await users.create({
-            id: v4(),
-            user_id: userId,
+        let user = await psql.users.findOne({
+            where: {
+                user_id,
+            },
+            raw: true,
         })
-    }
+  
+        if(!user) {
+            await bot.sendMessage(user_id, "Botga xush kelibsiz")
+            
+            const { first_name, last_name, username } = message.from
 
-    if(message.text == "/start") {
-        await bot.sendMessage(userId, "Botga hush Kelibsiz")
-    }
+            user = await psql.users.create({
+                user_id,
+                first_name, 
+                last_name, 
+                username,
+                step: "region",
+            }, {
+                raw: true,
+            })
 
-    await MessageContr(bot, message, user)
+            let keyboard = {
+                resize_keyboard: true,
+                keyboard: [
+                    [
+                        {
+                            text: "Toshkent",
+                        },
+                        {
+                            text: "Termiz"
+                        }
+                    ]
+                ]
+            }
+            bot.sendMessage(user_id, "Mintaqani tanlang", {
+                reply_markup: keyboard,
+            })
+        } else if (user.step == "region") {
+            const text = message.text
+
+            user = await psql.users.update({
+                region: text,
+                step: 0,
+            }, {
+                where: {
+                    user_id,
+                }
+            })
+
+            await MessageContr(bot, message, user)
+        } else {
+            await MessageContr(bot, message, user)
+        }
+
+    } catch(e) {
+        console.log(e + "")
+    }
 })

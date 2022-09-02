@@ -19,10 +19,13 @@
   },
   "homepage": "https://github.com/OgabekMengn1yozov/Namoz_bot#readme",
   "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.0.1",
-    "mongoose": "^6.5.1",
     "node-telegram-bot-api": "^0.58.0",
     "nodemon": "^2.0.19",
+    "pg": "^8.8.0",
+    "pg-pool": "^3.5.2",
+    "sequelize": "^6.21.4",
     "uuid": "^8.3.2"
   }
 }
